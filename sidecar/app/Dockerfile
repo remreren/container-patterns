@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY main.py entrypoint.sh ./
+RUN chmod +x entrypoint.sh
+
+ENV OTEL_SERVICE_NAME=example-sidecar-app
+ENV OTEL_RESOURCE_ATTRIBUTES=service.version=1.0,deployment.environment=dev
+ENV OTEL_EXPORTER_OTLP_ENDPOINT=localhost:4317
+ENV OTEL_EXPORTER_OTLP_PROTOCOL=grpc
+ENV OTEL_EXPORTER_OTLP_INSECURE=true
+ENV OTEL_TRACES_EXPORTER=otlp
+ENV OTEL_METRICS_EXPORTER=otlp
+ENV OTEL_LOGS_EXPORTER=otlp
+ENV OTEL_PYTHON_LOG_CORRELATION=true
+ENV OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=true
+ENV OTEL_PYTHON_ID_GENERATOR=random
+
+ENV PYTHONUNBUFFERED=1
+EXPOSE 8000
+
+ENTRYPOINT ["./entrypoint.sh"]

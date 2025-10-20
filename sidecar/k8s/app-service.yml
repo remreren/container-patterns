@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-sidecar-app
+  namespace: sidecar-demo
+spec:
+  selector:
+    app: example-sidecar-app
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+  type: ClusterIP

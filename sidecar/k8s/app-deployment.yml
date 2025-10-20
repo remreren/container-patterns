@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-sidecar-app
+  namespace: sidecar-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-sidecar-app
+  template:
+    metadata:
+      labels:
+        app: example-sidecar-app
+        otel.service.name: example-sidecar-app
+    spec:
+      containers:
+        - name: app
+          image: example-sidecar-app:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: "example-sidecar-app"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.version=1.0,deployment.environment=dev"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "localhost:4317"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "grpc"
+            - name: OTEL_EXPORTER_OTLP_INSECURE
+              value: "true"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOGS_EXPORTER
+              value: "otlp"
+            - name: OTEL_LOG_LEVEL
+              value: "debug"
+            - name: OTEL_PYTHON_ID_GENERATOR
+              value: "random"
+            - name: OTEL_PYTHON_LOG_CORRELATION
+              value: "true"
+            - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+              value: "true"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:latest
+          args: ["--config=/etc/otelcol/otel-collector-config.yaml"]
+          ports:
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otelcol
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      volumes:
+        - name: otel-config
+          configMap:
+            name: otel-sidecar-config
+            items:
+              - key: otel-collector-config.yaml
+                path: otel-collector-config.yaml
